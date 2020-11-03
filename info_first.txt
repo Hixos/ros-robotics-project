@@ -1,0 +1,96 @@
+***TEAM MEMBERS***
+- Luca Erbetta (ID: 10537064, matr. number: 927617)
+
+***HOW TO RUN***
+
+1. Compile the project
+catkin_make
+
+2. Launch the nodes
+roslaunch src/first_project/launch/firstproject.launch
+
+3. Play the bag file
+
+
+***PROJECT DESCRIPTION***
+
+NODES:
+
+- lla2enu_node
+    Converts GPS coordinates to ENU and publishes odometry and tf.
+    Two istances of this node are run: one for the car, one for the obstacle.
+    Topic to subscribe to and to publish to are specified using remap in launch 
+    file.
+    Name of the tf to publish is passed as a private parameter, through the 
+    launch file as well.
+        -CAR
+            subscribes to: /swiftnav/front/gps_pose
+            publishes: /front/odometry
+            tf: tf_front
+        -OBSTACLE
+            subscribes to: /swiftnav/obs/gps_pose
+            publishes: /obs/odometry
+            tf: tf_obs
+    The odometries are published with the same timestamp as the gps pose they 
+    refer to (since they represent the same information, but in a different 
+    frame).
+
+- collision_status_node
+    Calculates the distance between the car and the obstacle (through the 
+    distance_service), and determines the status (safe, unsafe or crash) based 
+    on variable thresholds configured via dynamic reconfigure.
+    Subscribes to two odometry topics (one for the car, one for the obstacle), 
+    specified in the launch file.
+    Publishes a CollisionStatus message containing distance and status.
+    Odometries are synchronized using a messagefilter with an Approximate Time 
+    Synchronizer policy, since the two odometries are not guaranteed to have the
+    same timestamps.
+
+    subscribe to: /front/odometry, /obs/odometry
+    publishes to: /collision_status
+
+
+SERVICES:
+
+- distance_service
+    Calculates distance between two geometry_msgs/Point
+
+
+MESSAGES:
+
+- CollisionStatus.msg
+    . header: containing timestamp and seq number
+    . distance: distance between the car and the obstacle (NaN if gps data is 
+                missing)
+    . status: status of the car (Safe, Unsafe, Crash). 
+        Status is always "Unsafe" if GPS  data is missing.
+        The value of this field can be one of three string constants defined in 
+        the msg file: STATUS_SAFE, STATUS_UNSAFE, STATUS_CRASH
+
+- CalculateDistance.srv
+    Request:
+    . point1 & point2: The two points to calculate the distance between.
+    Response:
+    . distance: Float containing the distance between the two points, or NaN if
+      data in the points is not valid.
+      
+TF TREE:
+/world
+/world/tf_front (Car)
+/world/tf_obs (Obstacle)
+
+PARAMETERS:
+ - enu/latitude_init: "Zero" latitude for enu conversion
+ - enu/longitude_init: "Zero" longitude for enu conversion
+ - enu/altitude_init: "Zero" altitude for enu conversion
+
+(defined in cfg/CollisionThresholds.cfg)
+ - collision_status/crash_threshold: Distance below which a crash is detected
+ - collision_status/unsafe_threshold: Distance below which the car is considered 
+                                      unsafe
+
+ These last two parameters are defined in cfg/CollisionThresholds.cfg but are 
+ reset to their default value, at each launch, in the firstproject.launch file. 
+ If you want their values to persist between launches, remove two corresponding 
+ rows in the launch file.
+

@@ -1,0 +1,29 @@
+<launch>
+  <param name="enu/latitude_init" value="45.6216561271" />
+  <param name="enu/longitude_init" value="9.28155230131" />
+  <param name="enu/altitude_init" value="224.616616895" />
+
+  <param name="collision_status/crash_threshold" value="1" />
+  <param name="collision_status/unsafe_threshold" value="5" />
+
+  <node pkg="first_project" name="front_lla2enu" type="lla2enu_node">
+    <remap from="input" to="/swiftnav/front/gps_pose"/>
+    <remap from="output_odo" to="/front/odometry"/>
+    <param name="tf_name" value="tf_front"/>  
+  </node>
+
+  <node pkg="first_project" name="obs_lla2enu" type="lla2enu_node">
+    <remap from="input" to="/swiftnav/obs/gps_pose"/>
+    <remap from="output_odo" to="/obs/odometry"/>
+    <param name="tf_name" value="tf_obs"/>  
+  </node>
+
+  <node pkg="first_project" name="collision_status" type="collision_status_node" output="screen">
+    <remap from="odo_1" to="/front/odometry"/>
+    <remap from="odo_2" to="/obs/odometry"/>
+    <remap from="collision_status_topic" to="/collision_status"/>
+  </node>
+
+   <node pkg="first_project" name="distance_service" type="distance_service"/>
+
+</launch>
